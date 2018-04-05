@@ -10,7 +10,7 @@ Cấu hình:
 Nếu có repo offline thì sử dụng, không có thì bỏ qua đoạn thêm repo này.
 ```sh
 echo 'Acquire::http::Proxy "http://172.16.68.18:3142";' >  /etc/apt/apt.conf
-``
+```
 
 Sau đó, vào máy chủ cài đặt git để kéo mã nguồn cài đặt về.
 ```sh
