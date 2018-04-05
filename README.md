@@ -7,9 +7,14 @@ Mô hình cài đặt: (bổ sung sau)
 Để thực hiện cài đặt, trước tiên chuyển bị máy chủ cài đặt
 Cấu hình:
 
+Nếu có repo offline thì sử dụng, không có thì bỏ qua đoạn thêm repo này.
+```sh
+echo 'Acquire::http::Proxy "http://172.16.68.18:3142";' >  /etc/apt/apt.conf
+``
+
 Sau đó, vào máy chủ cài đặt git để kéo mã nguồn cài đặt về.
 ```sh
-apt update && apt install git -y
+apt update -y && apt dist-upgrade -y && apt install git -y
 ```
 
 Sau đó tải script cài đặt về:

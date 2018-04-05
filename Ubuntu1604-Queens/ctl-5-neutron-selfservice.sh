@@ -135,7 +135,8 @@ neutron_config_ml2 () {
 	ops_add $ml2file ml2 extension_drivers port_security
 	ops_add $ml2file ml2_type_flat flat_networks provider
 	ops_add $ml2file ml2_type_vlan network_vlan_ranges provider
-	ops_add $ml2file ml2_type_vxlan vni_ranges 1:1000
+	ops_add $ml2file ml2_type_vxlan vni_ranges 4000:8000
+	ops_add $ml2file ml2_type_gre tunnel_id_ranges 2000:4000
 	ops_add $ml2file securitygroup enable_ipset true
 }
 
