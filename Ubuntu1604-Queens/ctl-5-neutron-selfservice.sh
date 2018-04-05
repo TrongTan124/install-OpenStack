@@ -130,7 +130,7 @@ neutron_config_ml2 () {
 	egrep -v "^$|^#" $ml2filebak > $ml2file
 
 	ops_add $ml2file ml2 type_drivers flat,vlan,vxlan,gre
-	ops_add $ml2file ml2 tenant_network_types vxlan
+	ops_add $ml2file ml2 tenant_network_types vxlan,gre
 	ops_add $ml2file ml2 mechanism_drivers openvswitch,l2population
 	ops_add $ml2file ml2 extension_drivers port_security
 	ops_add $ml2file ml2_type_flat flat_networks provider
@@ -149,7 +149,7 @@ neutron_config_ovs () {
 	cp $ovsfile $ovsfilebak
 	egrep -v "^$|^#" $ovsfilebak > $ovsfile
 	
-	ops_add $ovsfile agent tunnel_types vxlan
+	ops_add $ovsfile agent tunnel_types vxlan,gre
 	ops_add $ovsfile agent l2_population True
 
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider

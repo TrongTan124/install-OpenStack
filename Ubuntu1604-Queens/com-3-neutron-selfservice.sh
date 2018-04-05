@@ -56,7 +56,7 @@ neutron_config_ovs () {
 	cp $ovsfile $ovsfilebak
 	egrep -v "^$|^#" $ovsfilebak > $ovsfile
 
-	ops_add $ovsfile agent tunnel_types vxlan
+	ops_add $ovsfile agent tunnel_types vxlan,gre
 	ops_add $ovsfile agent l2_population True
 
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider
