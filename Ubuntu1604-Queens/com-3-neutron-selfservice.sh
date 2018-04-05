@@ -62,7 +62,7 @@ neutron_config_ovs () {
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider
 	ops_add $ovsfile ovs local_ip $COM1_MGNT_IP
 	
-	ops_add $ovsfile securitygroup firewall_driver iptables_hybrid
+	ops_add $ovsfile securitygroup firewall_driver openvswitch
 }
 
 # Function configure things relation

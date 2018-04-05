@@ -46,7 +46,7 @@ nova_config () {
 		password $NOVA_PASS
 
 	ops_add $novafile DEFAULT \
-		my_ip $COM_MGNT_IP
+		my_ip $COM1_MGNT_IP
 
 	ops_add $novafile DEFAULT \
 		use_neutron True
@@ -57,9 +57,9 @@ nova_config () {
 	ops_add $novafile vnc \
 		enabled True
 	ops_add $novafile vnc \
-		vncserver_listen 0.0.0.0
+		server_listen 0.0.0.0
 	ops_add $novafile vnc \
-		vncserver_proxyclient_address \$my_ip
+		server_proxyclient_address \$my_ip
 	ops_add $novafile vnc \
 		novncproxy_base_url http://$CTL_EXT_IP:6080/vnc_auto.html
 

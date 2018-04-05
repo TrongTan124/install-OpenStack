@@ -7,7 +7,7 @@ source config.sh
 # Function config COMPUTE node
 config_hostname () {
 	echo "$HOST_COM" > /etc/hostname
-	hostnamectl set-hostname $HOST_COM
+	hostnamectl set-hostname $HOST_COM1
 
 	cat << EOF >/etc/hosts
 127.0.0.1	localhost

@@ -129,13 +129,14 @@ neutron_config_ml2 () {
 	cp $ml2file $ml2filebak
 	egrep -v "^$|^#" $ml2filebak > $ml2file
 
-	ops_add $ml2file ml2 type_drivers flat,vlan,vxlan
+	ops_add $ml2file ml2 type_drivers flat,vlan,vxlan,gre
 	ops_add $ml2file ml2 tenant_network_types vxlan
 	ops_add $ml2file ml2 mechanism_drivers openvswitch,l2population
 	ops_add $ml2file ml2 extension_drivers port_security
 	ops_add $ml2file ml2_type_flat flat_networks provider
 	ops_add $ml2file ml2_type_vlan network_vlan_ranges provider
 	ops_add $ml2file ml2_type_vxlan vni_ranges 1:1000
+	ops_add $ml2file securitygroup enable_ipset true
 }
 
 # Function configure the Open vSwitch agent
@@ -153,7 +154,7 @@ neutron_config_ovs () {
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider
 	ops_add $ovsfile ovs local_ip $CTL_MGNT_IP
 	
-	ops_add $ovsfile securitygroup firewall_driver iptables_hybrid
+	ops_add $ovsfile securitygroup firewall_driver openvswitch
 }
 
 # Function configure the L3 agent

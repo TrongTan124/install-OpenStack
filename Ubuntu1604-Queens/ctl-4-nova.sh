@@ -121,9 +121,9 @@ nova_config () {
 	ops_add $novafile vnc \
 		enabled true
 	ops_add $novafile vnc \
-		vncserver_listen \$my_ip
+		server_listen \$my_ip
 	ops_add $novafile vnc \
-		vncserver_proxyclient_address \$my_ip
+		server_proxyclient_address \$my_ip
 
 	ops_add $novafile glance \
 		api_servers http://$HOST_CTL:9292
@@ -142,6 +142,8 @@ nova_config () {
 	ops_add $novafile placement auth_url http://$HOST_CTL:5000/v3
 	ops_add $novafile placement username placement
 	ops_add $novafile placement password $PLACEMENT_PASS
+	
+	ops_add $novafile scheduler discover_hosts_in_cells_interval 300
 }
 
 # Function populate the nova-api database
