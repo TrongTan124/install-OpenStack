@@ -1,11 +1,5 @@
 #!/bin/bash
-# Author Son Do Xuan
-
-source function.sh
-source config.sh
-
-#!/bin/bash
-# Author Son Do Xuan
+# Author Nguyen Trong Tan
 
 source function.sh
 source config.sh
@@ -17,10 +11,9 @@ neutron_create_db () {
 
 	cat << EOF | mysql
 CREATE DATABASE neutron;
-GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'localhost' \
-IDENTIFIED BY '$NEUTRON_DBPASS';
-GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'%' \
-IDENTIFIED BY '$NEUTRON_DBPASS';
+GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'localhost' IDENTIFIED BY '$NEUTRON_DBPASS';
+GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'%' IDENTIFIED BY '$NEUTRON_DBPASS';
+FLUSH PRIVILEGES;
 EOF
 }
 
@@ -33,14 +26,10 @@ neutron_create_info () {
 
 	openstack user create --domain default --password $NEUTRON_PASS neutron
 	openstack role add --project service --user neutron admin
-	openstack service create --name neutron \
-	  --description "OpenStack Networking" network
-	openstack endpoint create --region RegionOne \
-	  network public http://$HOST_CTL:9696
-	openstack endpoint create --region RegionOne \
-	  network internal http://$HOST_CTL:9696
-	openstack endpoint create --region RegionOne \
-	  network admin http://$HOST_CTL:9696
+	openstack service create --name neutron --description "OpenStack Networking" network
+	openstack endpoint create --region RegionOne network public http://$HOST_CTL:9696
+	openstack endpoint create --region RegionOne network internal http://$HOST_CTL:9696
+	openstack endpoint create --region RegionOne network admin http://$HOST_CTL:9696
 }
 
 # Function install the components
@@ -63,61 +52,38 @@ neutron_config_server_component () {
 	egrep -v "^$|^#" $neutronfilebak > $neutronfile
 
 	ops_del $neutronfile database connection 
-	ops_add $neutronfile database \
-		connection mysql+pymysql://neutron:$NEUTRON_DBPASS@$HOST_CTL/neutron
+	ops_add $neutronfile database connection mysql+pymysql://neutron:$NEUTRON_DBPASS@$HOST_CTL/neutron
 
 	ops_del $neutronfile DEFAULT core_plugin
-	ops_add $neutronfile DEFAULT \
-		core_plugin ml2
-	ops_add $neutronfile DEFAULT \
-		service_plugins router
-	ops_add $neutronfile DEFAULT \
-		allow_overlapping_ips true
+	ops_add $neutronfile DEFAULT core_plugin ml2
+	ops_add $neutronfile DEFAULT router,qos,neutron.services.metering.metering_plugin.MeteringPlugin
+	ops_add $neutronfile DEFAULT allow_overlapping_ips true
 
-	ops_add $neutronfile DEFAULT \
-		transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
+	ops_add $neutronfile DEFAULT transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
 
-	ops_add $neutronfile DEFAULT \
-		auth_strategy keystone
-	ops_add $neutronfile keystone_authtoken \
-		auth_uri http://$HOST_CTL:5000
-	ops_add $neutronfile keystone_authtoken \
-		auth_url http://$HOST_CTL:5000
-	ops_add $neutronfile keystone_authtoken \
-		memcached_servers $HOST_CTL:11211
-	ops_add $neutronfile keystone_authtoken \
-		auth_type password
-	ops_add $neutronfile keystone_authtoken \
-		project_domain_name default
-	ops_add $neutronfile keystone_authtoken \
-		user_domain_name default
-	ops_add $neutronfile keystone_authtoken \
-		project_name service
-	ops_add $neutronfile keystone_authtoken \
-		username neutron
-	ops_add $neutronfile keystone_authtoken \
-		password $NEUTRON_PASS
+	ops_add $neutronfile DEFAULT auth_strategy keystone
+	ops_add $neutronfile keystone_authtoken auth_uri http://$HOST_CTL:5000
+	ops_add $neutronfile keystone_authtoken auth_url http://$HOST_CTL:5000
+	ops_add $neutronfile keystone_authtoken memcached_servers $HOST_CTL:11211
+	ops_add $neutronfile keystone_authtoken auth_type password
+	ops_add $neutronfile keystone_authtoken project_domain_name default
+	ops_add $neutronfile keystone_authtoken user_domain_name default
+	ops_add $neutronfile keystone_authtoken project_name service
+	ops_add $neutronfile keystone_authtoken username neutron
+	ops_add $neutronfile keystone_authtoken password $NEUTRON_PASS
 
-	ops_add $neutronfile DEFAULT \
-		notify_nova_on_port_status_changes true
-	ops_add $neutronfile DEFAULT \
-		notify_nova_on_port_data_changes true
-	ops_add $neutronfile nova \
-		auth_url http://$HOST_CTL:5000
-	ops_add $neutronfile nova \
-		auth_type password
-	ops_add $neutronfile nova \
-		project_domain_name default
-	ops_add $neutronfile nova \
-		user_domain_name default
-	ops_add $neutronfile nova \
-		region_name RegionOne
-	ops_add $neutronfile nova \
-		project_name service
-	ops_add $neutronfile nova \
-		username nova
-	ops_add $neutronfile nova \
-		password $NOVA_PASS
+	ops_add $neutronfile DEFAULT notify_nova_on_port_status_changes true
+	ops_add $neutronfile DEFAULT notify_nova_on_port_data_changes true
+	ops_add $neutronfile nova auth_url http://$HOST_CTL:5000
+	ops_add $neutronfile nova auth_type password
+	ops_add $neutronfile nova project_domain_name default
+	ops_add $neutronfile nova user_domain_name default
+	ops_add $neutronfile nova region_name RegionOne
+	ops_add $neutronfile nova project_name service
+	ops_add $neutronfile nova username nova
+	ops_add $neutronfile nova password $NOVA_PASS
+	
+	ops_add $neutronfile qos notification_drivers message_queue
 }
 
 # Function configure the Modular Layer 2 (ML2) plug-in
@@ -132,7 +98,7 @@ neutron_config_ml2 () {
 	ops_add $ml2file ml2 type_drivers flat,vlan,vxlan,gre
 	ops_add $ml2file ml2 tenant_network_types vxlan,gre
 	ops_add $ml2file ml2 mechanism_drivers openvswitch,l2population
-	ops_add $ml2file ml2 extension_drivers port_security
+	ops_add $ml2file ml2 extension_drivers port_security,qos
 	ops_add $ml2file ml2_type_flat flat_networks provider
 	ops_add $ml2file ml2_type_vlan network_vlan_ranges provider
 	ops_add $ml2file ml2_type_vxlan vni_ranges 4000:8000
@@ -151,10 +117,9 @@ neutron_config_ovs () {
 	
 	ops_add $ovsfile agent tunnel_types vxlan,gre
 	ops_add $ovsfile agent l2_population True
-
+	ops_add $ovsfile agent extensions qos
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider
-	ops_add $ovsfile ovs local_ip $CTL_MGNT_IP
-	
+	ops_add $ovsfile ovs local_ip $CTL_MGNT_IP	
 	ops_add $ovsfile securitygroup firewall_driver openvswitch
 }
 

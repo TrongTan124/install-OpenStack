@@ -11,10 +11,9 @@ glance_create_db () {
 
 	cat << EOF | mysql
 CREATE DATABASE glance;
-GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' \
-  IDENTIFIED BY '$GLANCE_DBPASS';
-GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' \
-  IDENTIFIED BY '$GLANCE_DBPASS';
+GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY '$GLANCE_DBPASS';
+GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY '$GLANCE_DBPASS';
+FLUSH PRIVILEGES;
 EOF
 }
 
@@ -29,14 +28,10 @@ glance_create_service () {
 
 	openstack user create --domain default --password $GLANCE_PASS glance
 	openstack role add --project service --user glance admin
-	openstack service create --name glance \
-	  --description "OpenStack Image" image
-	openstack endpoint create --region RegionOne \
-	  image public http://$HOST_CTL:9292
-	openstack endpoint create --region RegionOne \
-	  image internal http://$HOST_CTL:9292
-	openstack endpoint create --region RegionOne \
-	  image admin http://$HOST_CTL:9292
+	openstack service create --name glance --description "OpenStack Image" image
+	openstack endpoint create --region RegionOne image public http://$HOST_CTL:9292
+	openstack endpoint create --region RegionOne image internal http://$HOST_CTL:9292
+	openstack endpoint create --region RegionOne image admin http://$HOST_CTL:9292
 }
 
 # Function install components of Glance
@@ -54,47 +49,20 @@ glance_config_api () {
 	cp $glanceapifile $glanceapifilebak
 	egrep -v "^#|^$"  $glanceapifilebak > $glanceapifile
 
-	ops_add $glanceapifile database \
-		connection mysql+pymysql://glance:$GLANCE_DBPASS@$HOST_CTL/glance
-
-	ops_add $glanceapifile keystone_authtoken \
-		auth_uri http://$HOST_CTL:5000
-	  
-	ops_add $glanceapifile keystone_authtoken \
-		auth_url http://$HOST_CTL:5000
-
-	ops_add $glanceapifile keystone_authtoken \
-		memcached_servers $HOST_CTL:11211
-	  
-	ops_add $glanceapifile keystone_authtoken \
-		auth_type password
-	  
-	ops_add $glanceapifile keystone_authtoken \
-		project_domain_name default
-
-	ops_add $glanceapifile keystone_authtoken \
-		user_domain_name default
-
-	ops_add $glanceapifile keystone_authtoken \
-		project_name service
-		
-	ops_add $glanceapifile keystone_authtoken \
-		username glance
-
-	ops_add $glanceapifile keystone_authtoken \
-		password $GLANCE_PASS
-
-	ops_add $glanceapifile paste_deploy \
-		flavor keystone	
-
-	ops_add $glanceapifile glance_store \
-		stores file,http
-		
-	ops_add $glanceapifile glance_store \
-		default_store file
-		
-	ops_add $glanceapifile glance_store \
-		filesystem_store_datadir /var/lib/glance/images/
+	ops_add $glanceapifile database connection mysql+pymysql://glance:$GLANCE_DBPASS@$HOST_CTL/glance
+	ops_add $glanceapifile keystone_authtoken auth_uri http://$HOST_CTL:5000	  
+	ops_add $glanceapifile keystone_authtoken auth_url http://$HOST_CTL:5000
+	ops_add $glanceapifile keystone_authtoken memcached_servers $HOST_CTL:11211	  
+	ops_add $glanceapifile keystone_authtoken auth_type password	  
+	ops_add $glanceapifile keystone_authtoken project_domain_name default
+	ops_add $glanceapifile keystone_authtoken user_domain_name default
+	ops_add $glanceapifile keystone_authtoken project_name service		
+	ops_add $glanceapifile keystone_authtoken username glance
+	ops_add $glanceapifile keystone_authtoken password $GLANCE_PASS
+	ops_add $glanceapifile paste_deploy flavor keystone	
+	ops_add $glanceapifile glance_store stores file,http		
+	ops_add $glanceapifile glance_store default_store file		
+	ops_add $glanceapifile glance_store filesystem_store_datadir /var/lib/glance/images/
 }
 
 # Function config /etc/glance/glance-registry.conf file
@@ -104,38 +72,17 @@ glance_config_registry () {
 	cp $glanceregistryfile $glanceregistryfilebak
 	egrep -v "^#|^$"  $glanceregistryfilebak > $glanceregistryfile
 
-	ops_add $glanceregistryfile database \
-	connection mysql+pymysql://glance:$GLANCE_DBPASS@$HOST_CTL/glance
-
-	ops_add $glanceregistryfile keystone_authtoken \
-		auth_uri http://$HOST_CTL:5000
-
-	ops_add $glanceregistryfile keystone_authtoken \
-		auth_url http://$HOST_CTL:5000
-		
-	ops_add $glanceregistryfile keystone_authtoken \
-		memcached_servers $HOST_CTL:11211
-		
-	ops_add $glanceregistryfile keystone_authtoken \
-		auth_type password	
-		
-	ops_add $glanceregistryfile keystone_authtoken \
-		project_domain_name default
-
-	ops_add $glanceregistryfile keystone_authtoken \
-		user_domain_name default
-		
-	ops_add $glanceregistryfile keystone_authtoken \
-		project_name service
-
-	ops_add $glanceregistryfile keystone_authtoken \
-		username glance
-
-	ops_add $glanceregistryfile keystone_authtoken \
-		password $GLANCE_PASS
-
-	ops_add $glanceregistryfile paste_deploy \
-		flavor keystone
+	ops_add $glanceregistryfile database connection mysql+pymysql://glance:$GLANCE_DBPASS@$HOST_CTL/glance
+	ops_add $glanceregistryfile keystone_authtoken auth_uri http://$HOST_CTL:5000
+	ops_add $glanceregistryfile keystone_authtoken auth_url http://$HOST_CTL:5000		
+	ops_add $glanceregistryfile keystone_authtoken memcached_servers $HOST_CTL:11211		
+	ops_add $glanceregistryfile keystone_authtoken auth_type password		
+	ops_add $glanceregistryfile keystone_authtoken project_domain_name default
+	ops_add $glanceregistryfile keystone_authtoken user_domain_name default		
+	ops_add $glanceregistryfile keystone_authtoken project_name service
+	ops_add $glanceregistryfile keystone_authtoken username glance
+	ops_add $glanceregistryfile keystone_authtoken password $GLANCE_PASS
+	ops_add $glanceregistryfile paste_deploy flavor keystone
 }
 
 # Function populate the Image service database

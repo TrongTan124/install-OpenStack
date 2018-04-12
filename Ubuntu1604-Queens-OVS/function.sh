@@ -1,5 +1,5 @@
 #!/bin/bash
-#Author Son Do Xuan
+#Author Nguyen Trong Tan
 
 # Ham dinh nghia mau cho cac thong bao in ra man hinh
 function echocolor {

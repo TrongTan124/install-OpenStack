@@ -13,20 +13,15 @@ nova_create_db () {
 CREATE DATABASE nova_api;
 CREATE DATABASE nova;
 CREATE DATABASE nova_cell0;
-GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'localhost' \
-  IDENTIFIED BY '$NOVA_DBPASS';
-GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'%' \
-  IDENTIFIED BY '$NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'localhost' IDENTIFIED BY '$NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'%' IDENTIFIED BY '$NOVA_DBPASS';
 
-GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'localhost' \
-  IDENTIFIED BY '$NOVA_DBPASS';
-GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%' \
-  IDENTIFIED BY '$NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'localhost' IDENTIFIED BY '$NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%' IDENTIFIED BY '$NOVA_DBPASS';
 
-GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'localhost' \
-  IDENTIFIED BY '$NOVA_DBPASS';
-GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'%' \
-  IDENTIFIED BY '$NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'localhost' IDENTIFIED BY '$NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'%' IDENTIFIED BY '$NOVA_DBPASS';
+FLUSH PRIVILEGES;
 EOF
 }
 
@@ -43,14 +38,10 @@ nova_create_info () {
 
 	openstack user create --domain default --password $NOVA_PASS nova
 	openstack role add --project service --user nova admin
-	openstack service create --name nova \
-	  --description "OpenStack Compute" compute
-	openstack endpoint create --region RegionOne \
-	  compute public http://$HOST_CTL:8774/v2.1
-	openstack endpoint create --region RegionOne \
-	  compute internal http://$HOST_CTL:8774/v2.1
-	openstack endpoint create --region RegionOne \
-	  compute admin http://$HOST_CTL:8774/v2.1
+	openstack service create --name nova --description "OpenStack Compute" compute
+	openstack endpoint create --region RegionOne compute public http://$HOST_CTL:8774/v2.1
+	openstack endpoint create --region RegionOne compute internal http://$HOST_CTL:8774/v2.1
+	openstack endpoint create --region RegionOne compute admin http://$HOST_CTL:8774/v2.1
 
 	## Create info for placement user
 	echocolor "Create info for placement user"
@@ -80,56 +71,35 @@ nova_config () {
 	egrep -v "^$|^#" $novafilebak > $novafile
 
 	ops_del $novafile api_database connection
-	ops_add $novafile api_database \
-		connection mysql+pymysql://nova:$NOVA_DBPASS@$HOST_CTL/nova_api
+	ops_add $novafile api_database connection mysql+pymysql://nova:$NOVA_DBPASS@$HOST_CTL/nova_api
 
-	ops_add $novafile database \
-		connection mysql+pymysql://nova:$NOVA_DBPASS@$HOST_CTL/nova
+	ops_add $novafile database connection mysql+pymysql://nova:$NOVA_DBPASS@$HOST_CTL/nova
 
-	ops_add $novafile DEFAULT \
-		transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
+	ops_add $novafile DEFAULT transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
 
-	ops_add $novafile api \
-		auth_strategy keystone
+	ops_add $novafile api auth_strategy keystone
 
-	ops_add $novafile keystone_authtoken \
-		auth_uri http://$HOST_CTL:5000
-	ops_add $novafile keystone_authtoken \
-		auth_url http://$HOST_CTL:5000
-	ops_add $novafile keystone_authtoken \
-		memcached_servers $HOST_CTL:11211
-	ops_add $novafile keystone_authtoken \
-		auth_type password
-	ops_add $novafile keystone_authtoken \
-		project_domain_name default
-	ops_add $novafile keystone_authtoken \
-		user_domain_name default
-	ops_add $novafile keystone_authtoken \
-		project_name service
-	ops_add $novafile keystone_authtoken \
-		username nova
-	ops_add $novafile keystone_authtoken \
-		password $NOVA_PASS
+	ops_add $novafile keystone_authtoken auth_uri http://$HOST_CTL:5000
+	ops_add $novafile keystone_authtoken auth_url http://$HOST_CTL:5000
+	ops_add $novafile keystone_authtoken memcached_servers $HOST_CTL:11211
+	ops_add $novafile keystone_authtoken auth_type password
+	ops_add $novafile keystone_authtoken project_domain_name default
+	ops_add $novafile keystone_authtoken user_domain_name default
+	ops_add $novafile keystone_authtoken project_name service
+	ops_add $novafile keystone_authtoken username nova
+	ops_add $novafile keystone_authtoken password $NOVA_PASS
 
-	ops_add $novafile DEFAULT \
-		my_ip $CTL_MGNT_IP
-	ops_add $novafile DEFAULT \
-		use_neutron True
-	ops_add $novafile DEFAULT \
-		firewall_driver nova.virt.firewall.NoopFirewallDriver
+	ops_add $novafile DEFAULT my_ip $CTL_MGNT_IP
+	ops_add $novafile DEFAULT use_neutron True
+	ops_add $novafile DEFAULT firewall_driver nova.virt.firewall.NoopFirewallDriver
 
-	ops_add $novafile vnc \
-		enabled true
-	ops_add $novafile vnc \
-		server_listen \$my_ip
-	ops_add $novafile vnc \
-		server_proxyclient_address \$my_ip
+	ops_add $novafile vnc enabled true
+	ops_add $novafile vnc server_listen \$my_ip
+	ops_add $novafile vnc server_proxyclient_address \$my_ip
 
-	ops_add $novafile glance \
-		api_servers http://$HOST_CTL:9292
+	ops_add $novafile glance api_servers http://$HOST_CTL:9292
 
-	ops_add $novafile oslo_concurrency \
-		lock_path /var/lib/nova/tmp
+	ops_add $novafile oslo_concurrency lock_path /var/lib/nova/tmp
 		
 	ops_del $novafile DEFAULT log_dir
 

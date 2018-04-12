@@ -27,24 +27,15 @@ neutron_config_server_component () {
 		transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
 
 	ops_add $neutronfile DEFAULT auth_strategy keystone
-	ops_add $neutronfile keystone_authtoken \
-		auth_uri http://$HOST_CTL:5000
-	ops_add $neutronfile keystone_authtoken \
-		auth_url http://$HOST_CTL:5000
-	ops_add $neutronfile keystone_authtoken \
-		memcached_servers $HOST_CTL:11211
-	ops_add $neutronfile keystone_authtoken \
-		auth_type password
-	ops_add $neutronfile keystone_authtoken \
-		project_domain_name default
-	ops_add $neutronfile keystone_authtoken \
-		user_domain_name default
-	ops_add $neutronfile keystone_authtoken \
-		project_name service
-	ops_add $neutronfile keystone_authtoken \
-		username neutron
-	ops_add $neutronfile keystone_authtoken \
-		password $NEUTRON_PASS
+	ops_add $neutronfile keystone_authtoken auth_uri http://$HOST_CTL:5000
+	ops_add $neutronfile keystone_authtoken auth_url http://$HOST_CTL:5000
+	ops_add $neutronfile keystone_authtoken memcached_servers $HOST_CTL:11211
+	ops_add $neutronfile keystone_authtoken auth_type password
+	ops_add $neutronfile keystone_authtoken project_domain_name default
+	ops_add $neutronfile keystone_authtoken user_domain_name default
+	ops_add $neutronfile keystone_authtoken project_name service
+	ops_add $neutronfile keystone_authtoken username neutron
+	ops_add $neutronfile keystone_authtoken password $NEUTRON_PASS
 }
 
 # Function configure the Open vSwitch agent
@@ -58,10 +49,9 @@ neutron_config_ovs () {
 
 	ops_add $ovsfile agent tunnel_types vxlan,gre
 	ops_add $ovsfile agent l2_population True
-
+	ops_add $ovsfile agent extensions qos
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider
-	ops_add $ovsfile ovs local_ip $COM1_MGNT_IP
-	
+	ops_add $ovsfile ovs local_ip $COM1_MGNT_IP	
 	ops_add $ovsfile securitygroup firewall_driver openvswitch
 }
 

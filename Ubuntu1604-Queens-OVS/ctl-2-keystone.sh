@@ -32,9 +32,7 @@ keystone_config () {
 	cp $keystonefile  $keystonefilebak
 	egrep -v "^#|^$" $keystonefilebak > $keystonefile
 
-	ops_add $keystonefile database \
-	connection mysql+pymysql://keystone:$KEYSTONE_DBPASS@$HOST_CTL/keystone
-
+	ops_add $keystonefile database connection mysql+pymysql://keystone:$KEYSTONE_DBPASS@$HOST_CTL/keystone
 	ops_add $keystonefile token provider fernet
 }
 
@@ -85,17 +83,10 @@ keystone_create_domain_project_user_role () {
 	echocolor "Create domain, projects, users and roles"
 	sleep 3
 
-	openstack project create --domain default \
-	  --description "Service Project" service
-	  
-	openstack project create --domain default \
-	  --description "Demo Project" demo
-
-	openstack user create --domain default \
-	  --password $DEMO_PASS demo
-
+	openstack project create --domain default --description "Service Project" service	  
+	openstack project create --domain default --description "Demo Project" demo
+	openstack user create --domain default --password $DEMO_PASS demo
 	openstack role create user
-
 	openstack role add --project demo --user demo user
 }
 
