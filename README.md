@@ -27,8 +27,13 @@ Cho script quyền thực thi. Ở đây tôi cài Queens trên Ubuntu 16.04. S�
 chmod +x install-OpenStack/Ubuntu1604-Queens/*.sh
 ```
 
-Chỉnh sửa lại thông tin trong file `install-OpenStack/Ubuntu1604-Queens/config.sh` các thông tin phù hợp
-Chạy lệnh cài đặt trên node controller
+Chỉnh sửa lại thông tin trong file `install-OpenStack/Ubuntu1604-Queens-OVS/config.sh` các thông tin phù hợp
+Chạy lệnh cài đặt trên node controller:
 ```sh
-cd install-OpenStack/Ubuntu1604-Queens/ && ./ctl-all.sh
+cd install-OpenStack/Ubuntu1604-Queens-OVS/ && ./ctl-all.sh
+```
+
+Chạy lệnh cài đặt trên node compute1:
+```sh
+cd install-OpenStack/Ubuntu1604-Queens-OVS/ && ./com-all.sh
 ```

@@ -56,7 +56,7 @@ neutron_config_server_component () {
 
 	ops_del $neutronfile DEFAULT core_plugin
 	ops_add $neutronfile DEFAULT core_plugin ml2
-	ops_add $neutronfile DEFAULT router,qos,neutron.services.metering.metering_plugin.MeteringPlugin
+	ops_add $neutronfile DEFAULT service_plugins router,qos,neutron.services.metering.metering_plugin.MeteringPlugin
 	ops_add $neutronfile DEFAULT allow_overlapping_ips true
 
 	ops_add $neutronfile DEFAULT transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
