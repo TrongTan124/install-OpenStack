@@ -24,7 +24,7 @@ git clone https://github.com/TrongTan124/install-OpenStack.git
 
 Cho script quyền thực thi. Ở đây tôi cài Queens trên Ubuntu 16.04. Sử dụng Switch là OpenvSwitch
 ```sh
-chmod +x install-OpenStack/Ubuntu1604-Queens/*.sh
+chmod +x install-OpenStack/Ubuntu1604-Queens-OVS/*.sh
 ```
 
 Chỉnh sửa lại thông tin trong file `install-OpenStack/Ubuntu1604-Queens-OVS/config.sh` các thông tin phù hợp
