@@ -20,7 +20,7 @@ EOF
 
 # Function IP address
 config_ip () {
-	cat << EOF > /etc/network/interfaces
+	cat << EOF >> /etc/network/interfaces
 # loopback network interface
 auto lo
 iface lo inet loopback
@@ -58,7 +58,4 @@ sleep 3
 config_hostname
 
 ## IP address
-config_ip
-
-## reboot
-init 6
+# config_ip
