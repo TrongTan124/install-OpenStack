@@ -55,7 +55,7 @@ neutron_config_server_component () {
 	ops_add $neutronfile database connection mysql+pymysql://neutron:$NEUTRON_DBPASS@$HOST_CTL/neutron
 
 	ops_add $neutronfile DEFAULT core_plugin ml2
-	ops_add $neutronfile DEFAULT service_plugins router
+	ops_add $neutronfile DEFAULT service_plugins router,qos,neutron.services.metering.metering_plugin.MeteringPlugin
 	ops_add $neutronfile DEFAULT allow_overlapping_ips true
 
 	ops_add $neutronfile DEFAULT transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
@@ -83,6 +83,8 @@ neutron_config_server_component () {
 	ops_add $neutronfile nova username nova
 	ops_add $neutronfile nova password $NOVA_PASS
 	
+	ops_add $neutronfile qos notification_drivers message_queue
+	
 	ops_add $neutronfile oslo_concurrency lock_path /var/lib/neutron/tmp
 }
 
@@ -95,13 +97,14 @@ neutron_config_ml2 () {
 	cp $ml2file $ml2filebak
 	egrep -v "^$|^#" $ml2filebak > $ml2file
 
-	ops_add $ml2file ml2 type_drivers flat,vlan,vxlan
-	ops_add $ml2file ml2 tenant_network_types vxlan
+	ops_add $ml2file ml2 type_drivers flat,vlan,vxlan,gre
+	ops_add $ml2file ml2 tenant_network_types vxlan,gre
 	ops_add $ml2file ml2 mechanism_drivers openvswitch,l2population
-	ops_add $ml2file ml2 extension_drivers port_security
+	ops_add $ml2file ml2 extension_drivers port_security,qos
 	ops_add $ml2file ml2_type_flat flat_networks provider
 	ops_add $ml2file ml2_type_vlan network_vlan_ranges provider
-	ops_add $ml2file ml2_type_vxlan vni_ranges 1:1000
+	ops_add $ml2file ml2_type_vxlan vni_ranges 1:2000
+	ops_add $ml2file ml2_type_gre tunnel_id_ranges 2000:4000
 	ops_add $ml2file securitygroup enable_ipset true
 }
 
@@ -114,12 +117,11 @@ neutron_config_ovs () {
 	cp $ovsfile $ovsfilebak
 	egrep -v "^$|^#" $ovsfilebak > $ovsfile
 	
-	ops_add $ovsfile agent tunnel_types vxlan
+	ops_add $ovsfile agent tunnel_types vxlan,gre
 	ops_add $ovsfile agent l2_population True
-
+	ops_add $ovsfile agent extensions qos
 	ops_add $ovsfile ovs bridge_mappings provider:br-provider
-	ops_add $ovsfile ovs local_ip $CTL_MGNT_IP
-	
+	ops_add $ovsfile ovs local_ip $CTL_MGNT_IP	
 	ops_add $ovsfile securitygroup firewall_driver openvswitch
 }
 
@@ -246,10 +248,7 @@ neutron_populate_db () {
 neutron_restart () {
 	systemctl restart openstack-nova-api.service
 
-	systemctl enable neutron-server.service \
-	neutron-openvswitch-agent.service neutron-dhcp-agent.service \
-	neutron-metadata-agent.service
-
+	systemctl enable neutron-server.service neutron-openvswitch-agent.service neutron-dhcp-agent.service neutron-metadata-agent.service
 	systemctl restart neutron-server.service neutron-openvswitch-agent.service neutron-dhcp-agent.service neutron-metadata-agent.service
 
 	systemctl enable neutron-l3-agent.service

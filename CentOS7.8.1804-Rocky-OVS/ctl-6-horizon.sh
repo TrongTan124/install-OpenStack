@@ -29,6 +29,7 @@ horizon_config () {
 	sed -i "s/'BACKEND'.*/'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',\n        'LOCATION': '$HOST_CTL:11211',/g" $horizonfile
 
 	echo "OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True" >> $horizonfile
+	
 	cat << EOF >> $horizonfile
 OPENSTACK_API_VERSIONS = {
     "identity": 3,
@@ -58,6 +59,7 @@ horizon_infomation () {
 	echocolor "HORIZON INFORMATION"
 	echo "LOGIN INFORMATION IN HORIZON"
 	echo "URL: http://$CTL_EXT_IP/dashboard"
+	echo "Domain: default"
 	echo "User: admin (or demo)"
 	echo "Password: $ADMIN_PASS (or $DEMO_PASS)"
 }

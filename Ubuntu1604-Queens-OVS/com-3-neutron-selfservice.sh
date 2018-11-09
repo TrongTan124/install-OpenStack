@@ -23,8 +23,7 @@ neutron_config_server_component () {
 	egrep -v "^$|^#" $neutronfilebak > $neutronfile
 
 	ops_del $neutronfile database connection
-	ops_add $neutronfile DEFAULT \
-		transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
+	ops_add $neutronfile DEFAULT transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
 
 	ops_add $neutronfile DEFAULT auth_strategy keystone
 	ops_add $neutronfile keystone_authtoken auth_uri http://$HOST_CTL:5000

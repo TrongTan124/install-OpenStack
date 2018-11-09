@@ -14,8 +14,9 @@ openstack network create provider --project service --share \
 
 openstack subnet create sub-provider --subnet-range $CIDR_EXT \
 	--dhcp --dns-nameserver 8.8.8.8 \
+	--allocation-pool start=$DHCP_START,end=$DHCP_END \
 	--gateway $GATEWAY_EXT_IP \
 	--description "Subnet for provider network" \
 	--network provider
 
-openstack flavor create small --ram 1024 --disk 1 --vcpus 1
+openstack flavor create timy --ram 128 --disk 1 --vcpus 1

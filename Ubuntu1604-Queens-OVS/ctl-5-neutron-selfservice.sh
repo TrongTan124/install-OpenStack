@@ -74,6 +74,7 @@ neutron_config_server_component () {
 
 	ops_add $neutronfile DEFAULT notify_nova_on_port_status_changes true
 	ops_add $neutronfile DEFAULT notify_nova_on_port_data_changes true
+	
 	ops_add $neutronfile nova auth_url http://$HOST_CTL:5000
 	ops_add $neutronfile nova auth_type password
 	ops_add $neutronfile nova project_domain_name default

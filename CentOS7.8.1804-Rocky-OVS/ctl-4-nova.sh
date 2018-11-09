@@ -106,8 +106,8 @@ nova_config () {
 	ops_add $novafile DEFAULT firewall_driver nova.virt.firewall.NoopFirewallDriver
 
 	ops_add $novafile vnc enabled true
-	ops_add $novafile vnc vncserver_listen \$my_ip
-	ops_add $novafile vnc vncserver_proxyclient_address \$my_ip
+	ops_add $novafile vnc server_listen \$my_ip
+	ops_add $novafile vnc server_proxyclient_address \$my_ip
 
 	ops_add $novafile glance api_servers http://$HOST_CTL:9292
 

@@ -85,17 +85,10 @@ keystone_create_domain_project_user_role () {
 	echocolor "Create domain, projects, users and roles"
 	sleep 3
 
-	openstack project create --domain default \
-	  --description "Service Project" service
-	  
-	openstack project create --domain default \
-	  --description "Demo Project" demo
-
-	openstack user create --domain default \
-	  --password $DEMO_PASS demo
-
+	openstack project create --domain default --description "Service Project" service	  
+	openstack project create --domain default --description "Demo Project" demo
+	openstack user create --domain default --password $DEMO_PASS demo
 	openstack role create user
-
 	openstack role add --project demo --user demo user
 }
 
