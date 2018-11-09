@@ -1,5 +1,5 @@
 #!/bin/bash
-#Author SNguyen Trong Tan
+#Author Nguyen Trong Tan
 
 source function.sh
 source config.sh
@@ -13,7 +13,7 @@ glance_create_db () {
 CREATE DATABASE glance;
 GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY '$GLANCE_DBPASS';
 GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY '$GLANCE_DBPASS';
-FLUSH PRIVILEGES;
+GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'$CTL_MGNT_IP' IDENTIFIED BY '$GLANCE_DBPASS';
 EOF
 }
 
@@ -39,7 +39,7 @@ glance_install () {
 	echocolor "Install and configure components of Glance"
 	sleep 3
 
-	apt-get install glance -y
+	yum install openstack-glance -y
 }
 
 # Function config /etc/glance/glance-api.conf file
@@ -50,16 +50,19 @@ glance_config_api () {
 	egrep -v "^#|^$"  $glanceapifilebak > $glanceapifile
 
 	ops_add $glanceapifile database connection mysql+pymysql://glance:$GLANCE_DBPASS@$HOST_CTL/glance
-	ops_add $glanceapifile keystone_authtoken auth_uri http://$HOST_CTL:5000	  
+
+	ops_add $glanceapifile keystone_authtoken www_authenticate_uri http://$HOST_CTL:5000	  
 	ops_add $glanceapifile keystone_authtoken auth_url http://$HOST_CTL:5000
 	ops_add $glanceapifile keystone_authtoken memcached_servers $HOST_CTL:11211	  
 	ops_add $glanceapifile keystone_authtoken auth_type password	  
-	ops_add $glanceapifile keystone_authtoken project_domain_name default
-	ops_add $glanceapifile keystone_authtoken user_domain_name default
+	ops_add $glanceapifile keystone_authtoken project_domain_name Default
+	ops_add $glanceapifile keystone_authtoken user_domain_name Default
 	ops_add $glanceapifile keystone_authtoken project_name service		
 	ops_add $glanceapifile keystone_authtoken username glance
 	ops_add $glanceapifile keystone_authtoken password $GLANCE_PASS
+
 	ops_add $glanceapifile paste_deploy flavor keystone	
+
 	ops_add $glanceapifile glance_store stores file,http		
 	ops_add $glanceapifile glance_store default_store file		
 	ops_add $glanceapifile glance_store filesystem_store_datadir /var/lib/glance/images/
@@ -73,15 +76,17 @@ glance_config_registry () {
 	egrep -v "^#|^$"  $glanceregistryfilebak > $glanceregistryfile
 
 	ops_add $glanceregistryfile database connection mysql+pymysql://glance:$GLANCE_DBPASS@$HOST_CTL/glance
-	ops_add $glanceregistryfile keystone_authtoken auth_uri http://$HOST_CTL:5000
+
+	ops_add $glanceregistryfile keystone_authtoken www_authenticate_uri http://$HOST_CTL:5000
 	ops_add $glanceregistryfile keystone_authtoken auth_url http://$HOST_CTL:5000		
 	ops_add $glanceregistryfile keystone_authtoken memcached_servers $HOST_CTL:11211		
 	ops_add $glanceregistryfile keystone_authtoken auth_type password		
-	ops_add $glanceregistryfile keystone_authtoken project_domain_name default
-	ops_add $glanceregistryfile keystone_authtoken user_domain_name default		
+	ops_add $glanceregistryfile keystone_authtoken project_domain_name Default
+	ops_add $glanceregistryfile keystone_authtoken user_domain_name Default		
 	ops_add $glanceregistryfile keystone_authtoken project_name service
 	ops_add $glanceregistryfile keystone_authtoken username glance
 	ops_add $glanceregistryfile keystone_authtoken password $GLANCE_PASS
+
 	ops_add $glanceregistryfile paste_deploy flavor keystone
 }
 
@@ -98,8 +103,8 @@ glance_restart () {
 	echocolor "Restart the Image services"
 	sleep 3
 
-	service glance-registry restart
-	service glance-api restart 
+	systemctl enable openstack-glance-api.service openstack-glance-registry.service
+	systemctl start openstack-glance-api.service openstack-glance-registry.service
 }
 
 # Function upload image to Glance
@@ -107,11 +112,11 @@ glance_upload_image () {
 	echocolor "Upload image to Glance"
 	sleep 3
 	source /root/admin-openrc
-	apt-get install wget -y
-	wget http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img
+	yum install wget -y
+	wget http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
 
-	openstack image create "cirros-0.3.5" \
-	  --file cirros-0.3.5-x86_64-disk.img \
+	openstack image create "cirros-0.4.0" \
+	  --file cirros-0.4.0-x86_64-disk.img \
 	  --disk-format qcow2 --container-format bare \
 	  --public
 	  

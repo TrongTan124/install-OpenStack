@@ -57,3 +57,17 @@ systemctl disable networkd-dispatcher
 systemctl mask networkd-dispatcher
 apt-get purge nplan netplan.io -y
 ```
+
+Cái cùi bắp của Ubuntu giờ mới bộc lộ. DNS giờ ko lấy từ ifupdown nữa, do netplan quản lý, thành ra, file /etc/resolv.conf chả có DNS được cấu hình trong /etc/network/interfaces
+```sh
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+```
+
+Và nhớ chạy lệnh sau để cập nhật source cho Ubuntu Server 18.04
+```sh
+cat  << EOF >> /etc/apt/sources.list
+deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted
+deb http://security.ubuntu.com/ubuntu/ bionic-security universe
+deb http://security.ubuntu.com/ubuntu/ bionic-security multiverse
+EOF
+```
