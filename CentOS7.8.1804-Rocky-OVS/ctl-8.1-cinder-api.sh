@@ -43,7 +43,7 @@ cinder_install () {
 	echocolor "Install and configure components of Cinder"
 	sleep 3
 
-	yum install cinder-api -y
+	yum install openstack-cinder -y
 }
 
 # Function config /etc/cinder/cinder.conf file
@@ -92,7 +92,7 @@ cinder_restart () {
 	sleep 3
 
 	systemctl enable openstack-cinder-api.service openstack-cinder-scheduler.service	
-	systemctl start openstack-cinder-api.service openstack-cinder-scheduler.service
+	systemctl restart openstack-cinder-api.service openstack-cinder-scheduler.service
 }
 
 #######################
