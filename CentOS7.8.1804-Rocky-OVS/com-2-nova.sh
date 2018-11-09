@@ -24,7 +24,7 @@ nova_config () {
 
 	ops_add $novafile DEFAULT transport_url rabbit://openstack:$RABBIT_PASS@$HOST_CTL
 	
-	ops_add $novafile DEFAULT sync_power_state_interval = -1
+	ops_add $novafile DEFAULT sync_power_state_interval -1
 	
 	ops_add $novafile DEFAULT instance_usage_audit True
 	ops_add $novafile DEFAULT instance_usage_audit_period hour
@@ -50,7 +50,7 @@ nova_config () {
 	ops_add $novafile vnc enabled True
 	ops_add $novafile vnc vncserver_listen 0.0.0.0
 	ops_add $novafile vnc vncserver_proxyclient_address \$my_ip
-	ops_add $novafile vnc novncproxy_base_url http://CTL_EXT_IP:6080/vnc_auto.html
+	ops_add $novafile vnc novncproxy_base_url http://$CTL_EXT_IP:6080/vnc_auto.html
 
 	ops_add $novafile glance api_servers http://$HOST_CTL:9292
 

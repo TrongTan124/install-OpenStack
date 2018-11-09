@@ -13,7 +13,7 @@ Cấu hình:
 
 Sau đó, vào máy chủ cài đặt git để kéo mã nguồn cài đặt về.
 ```sh
-yum update -y && yum dist-upgrade -y && yum install git -y
+yum update -y && yum install git -y
 ```
 
 Sau đó tải script cài đặt về:
@@ -26,7 +26,11 @@ Cho script quyền thực thi.
 chmod +x install-OpenStack/CentOS7.8.1804-Rocky-OVS/*.sh
 ```
 
-Chỉnh sửa lại thông tin trong file `install-OpenStack/CentOS7.8.1804-Rocky-OVS/config.sh` các thông tin phù hợp
+Chỉnh sửa lại các thông tin phù hợp trong file.
+```sh
+vim install-OpenStack/CentOS7.8.1804-Rocky-OVS/config.sh
+```
+
 Chạy lệnh cài đặt trên node controller:
 ```sh
 cd install-OpenStack/CentOS7.8.1804-Rocky-OVS/ && ./ctl-all.sh
