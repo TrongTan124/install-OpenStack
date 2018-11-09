@@ -11,7 +11,7 @@ cinder_install_lvm () {
 	yum install lvm2 device-mapper-persistent-data -y
 	
 	systemctl enable lvm2-lvmetad.service
-	systemctl start lvm2-lvmetad.service
+	systemctl restart lvm2-lvmetad.service
 }
 
 # Function config lvm
