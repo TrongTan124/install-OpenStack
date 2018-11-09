@@ -124,6 +124,8 @@ nova_config () {
 	
 	ops_add $novafile scheduler discover_hosts_in_cells_interval 300
 	
+	ops_add $novafile cinder os_region_name RegionOne
+	
 	cat << EOF > /etc/httpd/conf.d/00-nova-placement-api.conf
 Listen 8778
 
