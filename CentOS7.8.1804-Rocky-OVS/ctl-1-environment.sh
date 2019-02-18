@@ -89,7 +89,7 @@ install_mq () {
 	systemctl enable rabbitmq-server.service
 	systemctl start rabbitmq-server.service
 	
-	sleep 30
+	sleep 60
 	
 	rabbitmqctl add_user openstack $RABBIT_PASS
 	rabbitmqctl set_permissions openstack ".*" ".*" ".*"
