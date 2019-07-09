@@ -1,0 +1,13 @@
+[Unit]
+Description = OpenStack Loadbalancer housekeeping
+After = mysql.service postgresql.service rabbitmq-server.service keystone.service
+[Service]
+User=root
+Group=root
+Type=simple
+ExecStart=/etc/init.d/octavia-housekeeping systemd-start
+Restart=on-failure
+LimitNOFILE=65535
+TimeoutStopSec=15
+[Install]
+WantedBy = multi-user.target

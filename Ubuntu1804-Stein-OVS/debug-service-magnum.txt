@@ -1,0 +1,320 @@
+cat << EOF > change-mode-debug.sh
+#!/bin/bash
+function ops_add () 
+{
+	crudini --set \$1 \$2 \$3 \$4 
+}
+
+function echocolor () 
+{
+    echo "\$(tput setaf 2)##### \$1 #####\$(tput sgr0)"
+}
+
+function change_debug () 
+{
+	ops_add /etc/magnum/magnum.conf DEFAULT debug true
+	ops_add /etc/heat/heat.conf DEFAULT debug true
+	ops_add /etc/nova/nova.conf DEFAULT debug true
+	ops_add /etc/cinder/cinder.conf DEFAULT debug true
+	ops_add /etc/glance/glance-api.conf DEFAULT debug true
+	ops_add /etc/neutron/neutron.conf DEFAULT debug true
+	ops_add /etc/barbican/barbican.conf DEFAULT debug true
+}
+
+function restart_service () 
+{
+	echocolor "restart neutron service"
+	sleep 5
+	service neutron-dhcp-agent restart
+	service neutron-l3-agent restart
+	service neutron-metadata-agent restart
+	service neutron-openvswitch-agent restart
+	service neutron-server restart
+	
+	echocolor "restart nova service"
+	sleep 5
+	service nova-api restart
+	service nova-conductor restart
+	service nova-consoleauth restart
+	service nova-novncproxy restart
+	service nova-scheduler restart
+	
+	echocolor "restart cinder service"
+	sleep 5
+	service cinder-scheduler restart
+	service cinder-volume restart
+	
+	echocolor "restart glance service"
+	sleep 5
+	service glance-api restart
+	
+	echocolor "restart barbican service"
+	sleep 5
+	service barbican-keystone-listener restart
+	service barbican-worker restart
+	
+	echocolor "restart heat service"
+	sleep 5
+	service heat-api restart
+	service heat-api-cfn restart
+	service heat-engine restart
+	
+	echocolor "restart magnum service"
+	sleep 5
+	service magnum-api restart
+	service magnum-conductor restart
+	
+	echocolor "restart apache service"
+	sleep 5
+	service apache2 restart
+}
+
+change_debug
+restart_service
+
+EOF
+
+dos2unix change-mode-debug.sh
+chmod +x change-mode-debug.sh
+source change-mode-debug.sh
+
+
+
+
+cat << EOF > change-mode-info.sh
+#!/bin/bash
+function ops_del () 
+{
+	crudini --del \$1 \$2 \$3
+}
+
+function echocolor () 
+{
+    echo "\$(tput setaf 2)##### \$1 #####\$(tput sgr0)"
+}
+
+function change_info () 
+{
+	ops_del /etc/magnum/magnum.conf DEFAULT debug
+	ops_del /etc/heat/heat.conf DEFAULT debug
+	ops_del /etc/nova/nova.conf DEFAULT debug
+	ops_del /etc/cinder/cinder.conf DEFAULT debug
+	ops_del /etc/glance/glance-api.conf DEFAULT debug
+	ops_del /etc/neutron/neutron.conf DEFAULT debug
+	ops_del /etc/barbican/barbican.conf DEFAULT debug
+}
+
+function restart_service () 
+{
+	echocolor "restart neutron service"
+	sleep 5
+	service neutron-dhcp-agent restart
+	service neutron-l3-agent restart
+	service neutron-metadata-agent restart
+	service neutron-openvswitch-agent restart
+	service neutron-server restart
+	
+	echocolor "restart nova service"
+	sleep 5
+	service nova-api restart
+	service nova-conductor restart
+	service nova-consoleauth restart
+	service nova-novncproxy restart
+	service nova-scheduler restart
+	
+	echocolor "restart cinder service"
+	sleep 5
+	service cinder-scheduler restart
+	service cinder-volume restart
+	
+	echocolor "restart glance service"
+	sleep 5
+	service glance-api restart
+	
+	echocolor "restart barbican service"
+	sleep 5
+	service barbican-keystone-listener restart
+	service barbican-worker restart
+	
+	echocolor "restart heat service"
+	sleep 5
+	service heat-api restart
+	service heat-api-cfn restart
+	service heat-engine restart
+	
+	echocolor "restart magnum service"
+	sleep 5
+	service magnum-api restart
+	service magnum-conductor restart
+	
+	echocolor "restart apache service"
+	sleep 5
+	service apache2 restart
+}
+
+change_info
+restart_service
+
+EOF
+
+dos2unix change-mode-info.sh
+chmod +x change-mode-info.sh
+source change-mode-info.sh
+
+
+
+wget https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-27-20180419.0/CloudImages/x86_64/images/Fedora-Atomic-27-20180419.0.x86_64.qcow2
+
+openstack image create \
+--disk-format=qcow2 \
+--container-format=bare \
+--file=Fedora-Atomic-27-20180419.0.x86_64.qcow2 \
+--property os_distro='fedora-atomic' \
+fedora-atomic-latest
+
+
+openstack coe cluster template create swarm-cluster-template \
+--image fedora-atomic-latest \
+--external-network provider \
+--dns-nameserver 8.8.8.8 \
+--master-flavor m1.small \
+--flavor m1.small \
+--docker-volume-size 20 \
+--coe swarm-mode
+
+
+openstack coe cluster create swarm-cluster \
+--cluster-template swarm-cluster-template \
+--master-count 1 \
+--node-count 1 \
+--keypair mykey
+
+openstack coe cluster list swarm-cluster
+openstack coe cluster show swarm-cluster
+
+
+mkdir -p myclusterconfig
+rm -rf myclusterconfig/*.pem
+$(openstack coe cluster config swarm-cluster --dir myclusterconfig)
+export DOCKER_HOST=tcp://172.16.69.119:2375
+export DOCKER_CERT_PATH=myclusterconfig
+export DOCKER_TLS_VERIFY=True
+
+openstack coe cluster template create kubernetes-cluster-template \
+--image fedora-atomic-latest \
+--external-network provider \
+--dns-nameserver 8.8.8.8 \
+--master-flavor m1.small \
+--flavor m1.small \
+--docker-volume-size 20 \
+--coe kubernetes
+
+openstack coe cluster create kubernetes-cluster \
+--cluster-template kubernetes-cluster-template \
+--master-count 1 \
+--node-count 1 \
+--timeout 300 \
+--keypair mykey
+
+
+openstack coe cluster template create k8s-cluster-template \
+--image fedora-atomic-latest \
+--keypair mykey \
+--external-network provider \
+--dns-nameserver 8.8.8.8 \
+--flavor m1.small \
+--docker-volume-size 5 \
+--network-driver flannel \
+--coe kubernetes
+
+openstack coe cluster create k8s-cluster \
+--cluster-template k8s-cluster-template \
+--node-count 1
+
+######## Debug, trace log ##############
+can you log into the booted instance and check the following status there:-
+
+ping google.com (vm nodes should have access to internet for fetching docker images)
+etcdctl member list
+etcdctl ls
+sudo docker images
+sudo docker ps
+kubectl get nodes
+journalctl -fu kubelet
+journalctl -fu docker
+journalctl -fu flanneld
+
+Also check for any Error in: /var/log/cloud-init-output.log
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.480675 I | pkg/flags: recognized and used environment variable ETCD_ADVERTISE_CLIENT_URLS=https://10.0.0.123:2379,http://127.0.0.1:2379
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.568039 I | pkg/flags: recognized and used environment variable ETCD_CERT_FILE=/etc/etcd/certs/server.crt
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.578287 I | pkg/flags: recognized and used environment variable ETCD_CLIENT_CERT_AUTH=true
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.578696 I | pkg/flags: recognized and used environment variable ETCD_DATA_DIR=/var/lib/etcd/default.etcd
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.579001 I | pkg/flags: recognized and used environment variable ETCD_DEBUG=false
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.595047 I | pkg/flags: recognized and used environment variable ETCD_DISCOVERY=https://discovery.etcd.io/9e5b1b2fd39a4dfe03f1a4a4eb5b4e5f
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.599790 I | pkg/flags: recognized and used environment variable ETCD_DISCOVERY_FALLBACK=proxy
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.612482 I | pkg/flags: recognized and used environment variable ETCD_ELECTION_TIMEOUT=1000
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.612935 I | pkg/flags: recognized and used environment variable ETCD_ENABLE_PPROF=false
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.621367 I | pkg/flags: recognized and used environment variable ETCD_HEARTBEAT_INTERVAL=100
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.621878 I | pkg/flags: recognized and used environment variable ETCD_INITIAL_ADVERTISE_PEER_URLS=https://10.0.0.123:2380
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.637451 I | pkg/flags: recognized and used environment variable ETCD_INITIAL_CLUSTER_STATE=new
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.638299 I | pkg/flags: recognized and used environment variable ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.638854 I | pkg/flags: recognized and used environment variable ETCD_KEY_FILE=/etc/etcd/certs/server.key
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.653104 I | pkg/flags: recognized and used environment variable ETCD_LISTEN_CLIENT_URLS=https://10.0.0.123:2379,http://127.0.0.1:2379
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.653798 I | pkg/flags: recognized and used environment variable ETCD_LISTEN_PEER_URLS=https://10.0.0.123:2380
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.662848 I | pkg/flags: recognized and used environment variable ETCD_MAX_SNAPSHOTS=5
+Jun 27 02:50:23 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.663433 I | pkg/flags: recognized and used environment variable ETCD_MAX_WALS=5
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.663650 I | pkg/flags: recognized and used environment variable ETCD_NAME=10.0.0.123
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.663907 I | pkg/flags: recognized and used environment variable ETCD_PEER_CERT_FILE=/etc/etcd/certs/server.crt
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.676543 I | pkg/flags: recognized and used environment variable ETCD_PEER_CLIENT_CERT_AUTH=true
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.677005 I | pkg/flags: recognized and used environment variable ETCD_PEER_KEY_FILE=/etc/etcd/certs/server.key
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.677476 I | pkg/flags: recognized and used environment variable ETCD_PEER_TRUSTED_CA_FILE=/etc/etcd/certs/ca.crt
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.677711 I | pkg/flags: recognized and used environment variable ETCD_PROXY=off
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.677904 I | pkg/flags: recognized and used environment variable ETCD_PROXY_DIAL_TIMEOUT=1000
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.686856 I | pkg/flags: recognized and used environment variable ETCD_PROXY_FAILURE_WAIT=5000
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.687832 I | pkg/flags: recognized and used environment variable ETCD_PROXY_READ_TIMEOUT=0
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.702031 I | pkg/flags: recognized and used environment variable ETCD_PROXY_REFRESH_INTERVAL=30000
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.712487 I | pkg/flags: recognized and used environment variable ETCD_PROXY_WRITE_TIMEOUT=5000
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.713261 I | pkg/flags: recognized and used environment variable ETCD_SNAPSHOT_COUNT=10000
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.713527 I | pkg/flags: recognized and used environment variable ETCD_STRICT_RECONFIG_CHECK=false
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.713768 I | pkg/flags: recognized and used environment variable ETCD_TRUSTED_CA_FILE=/etc/etcd/certs/ca.crt
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.726505 W | pkg/flags: unrecognized environment variable ETCD_CORS=
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.742676 W | pkg/flags: unrecognized environment variable ETCD_INITIAL_CLUSTER=
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.743027 W | pkg/flags: unrecognized environment variable ETCD_DISCOVERY_SRV=
+Jun 27 02:50:27 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.743474 W | pkg/flags: unrecognized environment variable ETCD_DISCOVERY_PROXY=
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.743657 W | pkg/flags: unrecognized environment variable ETCD_WAL_DIR=
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.743902 W | pkg/flags: unrecognized environment variable ETCD_LOG_PACKAGE_LEVELS=
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.778038 I | etcdmain: etcd Version: 3.2.7
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.800424 I | etcdmain: Git SHA: bb66589
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.800867 I | etcdmain: Go Version: go1.10rc1
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.807635 I | etcdmain: Go OS/Arch: linux/amd64
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.808297 I | etcdmain: setting maximum number of CPUs to 1, total number of available CPUs is 1
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.909749 N | etcdmain: the server is already initialized as member before, starting as etcd member...
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:23.977760 I | embed: peerTLS: cert = /etc/etcd/certs/server.crt, key = /etc/etcd/certs/server.key, ca = , trusted-ca = /etc/etcd/certs/ca.crt, client-cert-auth = true
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:27.206822 I | embed: listening for peers on https://10.0.0.123:2380
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:27.272965 W | embed: The scheme of client url http://127.0.0.1:2379 is HTTP while peer key/cert files are presented. Ignored key/cert files.
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:27.317768 W | embed: The scheme of client url http://127.0.0.1:2379 is HTTP while client cert auth (--client-cert-auth) is enabled. Ignored client cert auth for this url.
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:27.385870 I | embed: listening for client requests on 127.0.0.1:2379
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:27.445778 I | embed: listening for client requests on 10.0.0.123:2379
+Jun 27 02:50:32 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:29.601901 W | etcdserver: another etcd process is using "/var/lib/etcd/default.etcd/member/snap/db" and holds the file lock.
+Jun 27 02:50:38 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:32.942622 W | etcdserver: waiting for it to exit before starting...
+Jun 27 02:50:44 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:42.811969 E | etcdmain: failed to join discovery cluster (context deadline exceeded)
+Jun 27 02:50:44 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:42.853026 I | etcdmain: discovery token https://discovery.etcd.io/9e5b1b2fd39a4dfe03f1a4a4eb5b4e5f was used, but failed to bootstrap the cluster.
+Jun 27 02:50:44 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal runc[28243]: 2019-06-27 02:50:42.862615 I | etcdmain: please generate a new discovery token and try to bootstrap again.
+Jun 27 02:50:47 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal systemd[1]: etcd.service: Main process exited, code=exited, status=1/FAILURE
+Jun 27 02:50:48 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal systemd[1]: etcd.service: Unit entered failed state.
+Jun 27 02:50:48 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal systemd[1]: etcd.service: Failed with result 'exit-code'.
+Jun 27 02:50:48 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal systemd[1]: etcd.service: Service hold-off time over, scheduling restart.
+Jun 27 02:50:48 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal systemd[1]: Stopped Etcd Server.
+Jun 27 02:50:48 kubernetes-cluster-t5glus4ddjzt-master-0.novalocal systemd[1]: Started Etcd Server.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+
+

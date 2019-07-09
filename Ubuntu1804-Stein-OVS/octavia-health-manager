@@ -1,0 +1,154 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          octavia-health-manager
+# Required-Start:    $network $local_fs $remote_fs $syslog
+# Required-Stop:     $remote_fs
+# Should-Start:      postgresql mysql keystone rabbitmq-server ntp
+# Should-Stop:       postgresql mysql keystone rabbitmq-server ntp
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Octavia health manager server
+# Description:       Frontend Octavia health manager server
+### END INIT INFO
+# Nguyen Trong Tan - nguyentrongtan124@gmail.com
+
+# PATH
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="OpenStack Octavia API"
+PROJECT_NAME=octavia
+NAME=${PROJECT_NAME}-health-manager
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+if [ -z "${DAEMON}" ] ; then
+	DAEMON=/usr/local/bin/${NAME}
+fi
+PIDFILE=/var/run/${PROJECT_NAME}/${NAME}.pid
+if [ -z "${SCRIPTNAME}" ] ; then
+	SCRIPTNAME=/etc/init.d/${NAME}
+fi
+if [ -z "${SYSTEM_USER}" ] ; then
+	# SYSTEM_USER=${PROJECT_NAME}
+	SYSTEM_USER=root
+fi
+if [ -z "${SYSTEM_GROUP}" ] ; then
+	# SYSTEM_GROUP=${PROJECT_NAME}
+	SYSTEM_GROUP=root
+fi
+if [ "${SYSTEM_USER}" != "root" ] ; then
+	STARTDAEMON_CHUID="--chuid ${SYSTEM_USER}:${SYSTEM_GROUP}"
+fi
+LOGFILE=/var/log/${PROJECT_NAME}/${NAME}.log
+if [ -z "${CONFIG_FILE}" ] ; then
+	CONFIG_FILE=/etc/${PROJECT_NAME}/${PROJECT_NAME}.conf
+fi
+LOGFILE=/var/log/${PROJECT_NAME}/${NAME}.log
+if [ -z "${NO_OPENSTACK_CONFIG_FILE_DAEMON_ARG}" ] ; then
+	DAEMON_ARGS="${DAEMON_ARGS} --config-file=${CONFIG_FILE}"
+fi
+
+# Exit if the package is not installed
+[ -x $DAEMON ] || exit 0
+
+# If ran as root, create /var/lock/X, /var/run/X and /var/cache/X as needed
+if [ `whoami` = "root" ] ; then
+	for i in lock run cache ; do
+		mkdir -p /var/$i/${PROJECT_NAME}
+		chown ${SYSTEM_USER}:${SYSTEM_GROUP} /var/$i/${PROJECT_NAME}
+	done
+fi
+
+# This defines support functions which we use later on
+. /lib/lsb/init-functions
+
+RET=0
+
+# Manage log options: logfile and/or syslog, depending on user's choosing
+[ -r /etc/default/openstack ] && . /etc/default/openstack
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+[ "x$USE_SYSLOG" = "xyes" ] && DAEMON_ARGS="$DAEMON_ARGS --use-syslog"
+if [ -z "${NO_OPENSTACK_LOGFILE_DAEMON_ARG}" ] ; then
+	[ "x$USE_LOGFILE" != "xno" ] && DAEMON_ARGS="$DAEMON_ARGS --log-file=$LOGFILE"
+fi
+
+do_start() {
+	start-stop-daemon \
+		--start \
+		--quiet \
+		--background ${STARTDAEMON_CHUID} \
+		--make-pidfile --pidfile ${PIDFILE} \
+		--chdir /var/lib/${PROJECT_NAME} \
+		--startas $DAEMON \
+		--test > /dev/null \
+		|| return 1
+	start-stop-daemon \
+		--start \
+		--quiet \
+		--background ${STARTDAEMON_CHUID} \
+		--make-pidfile --pidfile ${PIDFILE} \
+		--chdir /var/lib/${PROJECT_NAME} \
+		--startas $DAEMON \
+		-- $DAEMON_ARGS \
+		|| return 2
+}
+
+do_stop() {
+	start-stop-daemon \
+		--stop \
+		--quiet \
+		--retry=TERM/30/KILL/5 \
+		--pidfile $PIDFILE
+	RETVAL=$?
+	rm -f $PIDFILE
+	return "$RETVAL"
+}
+
+do_systemd_start() {
+	exec $DAEMON $DAEMON_ARGS
+}
+
+case "$1" in
+start)
+	log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	case $? in
+		0|1) log_end_msg 0 ; RET=$? ;;
+		2)   log_end_msg 1 ; RET=$? ;;
+	esac
+;;
+stop)
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	case $? in
+		0|1) log_end_msg 0 ; RET=$? ;;
+		2)   log_end_msg 1 ; RET=$? ;;
+	esac
+;;
+status)
+	status_of_proc "$DAEMON" "$NAME"
+	RET=$?
+;;
+systemd-start)
+	do_systemd_start
+;;  
+restart|force-reload)
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop
+	case $? in
+		0|1)
+			do_start
+			case $? in
+				0) log_end_msg 0 ; RET=$? ;;
+				1) log_end_msg 1 ; RET=$? ;; # Old process is still running
+				*) log_end_msg 1 ; RET=$? ;; # Failed to start
+			esac
+		;;
+		*) log_end_msg 1 ; RET=$? ;; # Failed to stop
+	esac
+;;
+*)
+	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload|systemd-start}" >&2
+	RET=3
+;;
+esac
+
+exit $RET
